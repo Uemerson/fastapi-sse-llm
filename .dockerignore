@@ -1,0 +1,12 @@
+.github
+infra
+.gitignore
+LICENSE
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+
+.git

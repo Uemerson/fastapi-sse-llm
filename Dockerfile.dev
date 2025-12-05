@@ -1,0 +1,26 @@
+# Imagem base
+FROM python:3.13-slim
+
+# Diretório da aplicação
+WORKDIR /app
+
+# Evita geração de bytecode e habilita saída sem buffer
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Instala dependências do sistema necessárias
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copia arquivos de requirements e instala
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia código da aplicação
+COPY src/ /app/src/
+
+
