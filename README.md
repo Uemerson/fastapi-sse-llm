@@ -81,7 +81,8 @@ docker-compose -f docker-compose.dev.yml up -d
 
 ### 5. Access the application
 
-Open your browser and navigate to: **http://localhost:8000**
+Open the web interface by opening [`index.html`](./index.html) in your browser, or use `curl` to test the `/ask` endpoint.
+
 
 ## 📁 Project Structure
 
