@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import random
+import time
 from typing import AsyncGenerator
 
 import aio_pika
@@ -42,7 +43,7 @@ redis_client = redis.Redis(
 )
 
 
-TOTAL_PROCESSING_TIMEOUT = 30  # seconds
+TOTAL_PROCESSING_TIMEOUT = int(os.getenv("TIMEOUT_SECONDS"))  # seconds
 
 
 async def simulate_llm(
@@ -90,9 +91,19 @@ async def callback(message: aio_pika.IncomingMessage):
 
             channel_id = body.get("uuid")
             prompt = body.get("query")
+            expires_at = body.get("expires_at", 0)
 
             if not channel_id or not prompt:
                 raise ValueError("Invalid message payload")
+
+            # Discard expired messages before starting processing
+            if expires_at < time.time():
+                logger.warning("Message expired — discarding")
+                await redis_client.publish(
+                    channel_id,
+                    json.dumps({"event": "expired", "data": {}}),
+                )
+                return
 
             try:
                 # TOTAL message processing timeout

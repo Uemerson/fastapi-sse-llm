@@ -6,6 +6,7 @@ and Redis integration.
 import asyncio
 import json
 import os
+import time
 import uuid
 from contextlib import asynccontextmanager
 
@@ -101,7 +102,11 @@ async def ask(request: Request):
     prompt = data.get("query", "")
 
     channel_id = str(uuid.uuid4())
-    payload = {"uuid": channel_id, "query": prompt}
+    payload = {
+        "uuid": channel_id,
+        "query": prompt,
+        "expires_at": time.time() + int(os.getenv("TIMEOUT_SECONDS")),
+    }
 
     # Open a channel (async)
     connection = app.state.rabbitmq
