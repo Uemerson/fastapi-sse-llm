@@ -28,4 +28,5 @@ function trap_ctrlc ()
 
 trap "trap_ctrlc" 2
 docker compose -f docker-compose.dev.yml --env-file .env.dev up -d --build --remove-orphans
-docker compose -f docker-compose.dev.yml logs -f --tail=15 api consumer
+docker compose -f docker-compose.dev.yml logs -f --tail=15 \
+    api consumer_east consumer_west

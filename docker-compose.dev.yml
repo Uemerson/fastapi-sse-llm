@@ -1,10 +1,27 @@
+x-consumer-base: &consumer_base
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  command: ["watchfiles", "python -m src.consumer"]
+  volumes:
+    - .:/app/
+  env_file:
+    - ./.env.dev
+  networks:
+    - local_network
+  depends_on:
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
 services:
   api:
     container_name: sse_api
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "src.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
     volumes:
       - .:/app/
     ports:
@@ -19,24 +36,6 @@ services:
       rabbitmq:
         condition: service_healthy
   
-  consumer:
-    container_name: consumer
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    command: ["python", "-m", "src.consumer"]
-    volumes:
-      - .:/app/
-    env_file:
-      - ./.env.dev
-    networks:
-      - local_network
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
   redis:
     container_name: redis
     image: redis:7.2.4-alpine
@@ -72,6 +71,18 @@ services:
       start_period: 10s
     networks:
       - local_network
+
+  consumer_east:
+    <<: *consumer_base
+    container_name: consumer_east
+    environment:
+      REGION: EAST-1
+
+  consumer_west:
+    <<: *consumer_base
+    container_name: consumer_west
+    environment:
+      REGION: WEST-1
 
 networks:
   local_network:

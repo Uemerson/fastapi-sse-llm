@@ -17,27 +17,27 @@ from fastapi.responses import StreamingResponse
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app_instance: FastAPI):
     """
     Lifespan context manager:
     initializes and cleanly shuts down
     RabbitMQ (aio-pika) and Redis.
     """
 
-    app.state.redis = redis.Redis(
+    app_instance.state.redis = redis.Redis(
         host=os.getenv("REDIS_HOST"),
         port=int(os.getenv("REDIS_PORT")),
         decode_responses=True,
     )
-    app.state.rabbitmq = await aio_pika.connect_robust(
+    app_instance.state.rabbitmq = await aio_pika.connect_robust(
         f"amqp://{os.getenv('RABBITMQ_USER')}:"
         f"{os.getenv('RABBITMQ_PASS')}@rabbitmq/"
     )
 
     yield
 
-    await app.state.rabbitmq.close()
-    await app.state.redis.close()
+    await app_instance.state.rabbitmq.close()
+    await app_instance.state.redis.close()
 
 
 app = FastAPI(lifespan=lifespan)
