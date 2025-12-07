@@ -73,6 +73,11 @@ async def stream_to_redis(channel_id: str, token: str):
 async def process_message(channel_id: str, prompt: str):
     """Handles the full LLM streaming pipeline."""
     async for token in simulate_llm(prompt, channel_id):
+        disconnected = await redis_client.get(f"{channel_id}:disconnected")
+        if disconnected:
+            logger.info("Client disconnected, stopping processing.")
+            return
+
         await stream_to_redis(channel_id, token)
 
     await redis_client.publish(
@@ -124,6 +129,10 @@ async def callback(message: aio_pika.IncomingMessage):
 
     except Exception as e:
         logger.error("Error processing message: %s", e)
+        await redis_client.publish(
+            channel_id,
+            json.dumps({"event": "error", "data": {}}),
+        )
         await message.reject(requeue=False)
 
 

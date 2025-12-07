@@ -60,11 +60,9 @@
           if (done) break;
           const text = decoder.decode(value);
           for (const line of text.split("\n")) {
-            if (line.startsWith("data:")) {
-              try {
-                const payload = JSON.parse(line.replace("data:", "").trim());
-                log(payload.token + " ");
-              } catch {}
+            if (line.startsWith("data: ")) {
+              const data = line.replace("data: ", "").trim();
+              log(`${data} `);
             }
             if (line.startsWith("event: done")) {
               log("\n--- DONE ---\n");

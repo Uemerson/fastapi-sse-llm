@@ -5,6 +5,7 @@ and Redis integration.
 
 import asyncio
 import json
+import logging
 import os
 import time
 import uuid
@@ -15,6 +16,12 @@ import redis.asyncio as redis
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s:     %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -75,18 +82,31 @@ async def event_generator(channel_id: str, max_timeout: int = 60):
                 data = json.loads(message["data"])
 
                 if data.get("event") != "token":
-                    yield f"event: {data.get('event')}"
+                    yield f"event: {data.get('event')}\n\n"
                     break
 
                 if data.get("event") == "token":
-                    yield (
-                        f"data: {json.dumps({'token': data.get('data')})}\n\n"
-                    )
+                    yield (f"data: {data.get('data')}\n\n")
+
     except asyncio.TimeoutError:
-        yield "event: timeout"
+        yield "event: timeout\n\n"
+    except asyncio.CancelledError:
+
+        async def _set_disconnected():
+            try:
+                await app.state.redis.setex(
+                    f"{channel_id}:disconnected", 30, 1
+                )
+            except Exception as e:
+                logging.error("API error: %s", e)
+
+        asyncio.create_task(_set_disconnected())
+
+        yield "event: cancelled\n\n"
     except Exception as e:
-        print(f"Error in event_generator: {e}")
-        yield "event: error"
+        logger.error("API error: %s", e)
+        await app.state.redis.setex(f"{channel_id}:disconnected", 30, True)
+        yield "event: error\n\n"
     finally:
         await pubsub.unsubscribe(channel_id)
         await pubsub.close()
